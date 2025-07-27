@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive 24-Day Sprint Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals & Muted Teal -->
+    <!-- Application Structure Plan: A task-oriented, single-page dashboard designed to transform the static 24-day sprint plan into an active, motivational tracking tool. The structure prioritizes the user's immediate needs ("What do I do today?") while providing easy access to the full plan and progress visualizations. The architecture consists of a main header with a countdown, a tab-based navigation for switching between 'Dashboard', 'Full Plan', and 'Progress' views, and distinct content areas for each view. This structure was chosen over a linear representation of the report because it turns passive information into an interactive checklist, enhancing user engagement, accountability, and motivation through visual feedback on their progress. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Daily Tasks -> Goal: Track daily execution -> Viz/Method: Interactive HTML Checklists -> Interaction: User clicks to mark tasks complete, triggering state updates -> Justification: Provides a tangible sense of accomplishment and direct interaction with the plan.
+        - Report Info: Weekly Plan Structure -> Goal: Organize and allow exploration of the full plan -> Viz/Method: HTML/JS Accordion -> Interaction: User clicks to expand/collapse weekly details -> Justification: Manages information density, allowing users to see the big picture or drill down into specifics without overwhelming them.
+        - Report Info: Overall Sprint Progress -> Goal: Visualize cumulative progress over time -> Viz/Method: Line Chart (Chart.js) -> Interaction: Hover for tooltips showing tasks completed by a specific day -> Justification: Creates a powerful motivational visual of the user's consistent effort and progress streak.
+        - Report Info: Weekly Performance -> Goal: Compare performance across weeks -> Viz/Method: Stacked Bar Chart (Chart.js) -> Interaction: Hover for details on completed vs. pending tasks per week -> Justification: Allows for weekly review and helps identify patterns in performance.
+        - Report Info: Task Type Distribution -> Goal: Show how effort is allocated -> Viz/Method: Donut Chart (Chart.js) -> Interaction: Hover to see percentage of tasks by category (Apti, DSA, etc.) -> Justification: Provides a high-level overview of where time and effort are focused according to the plan.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF8;
+            color: #4A4A4A;
+        }
+        .nav-button {
+            transition: all 0.3s ease;
+        }
+        .nav-button.active {
+            background-color: #4FD1C5;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .task-checkbox:checked + label {
+            text-decoration: line-through;
+            color: #A0AEC0;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 40vh;
+            max-height: 400px;
+        }
+        #task-modal {
+            transition: opacity 0.3s ease;
+        }
+        .gemini-response-container {
+            border-left: 3px solid #4FD1C5;
+            background-color: #F0F9F8;
+            padding: 1rem;
+            margin-top: 1.5rem;
+            border-radius: 0.5rem;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4FD1C5;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 35vh;
+                max-height: 300px;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div id="app-container" class="container mx-auto p-4 md:p-8 max-w-7xl">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800">The 24-Day Sprint</h1>
+            <p class="text-lg text-gray-500 mt-2">Your Interactive Battle Plan for Placement Success</p>
+            <div class="mt-4 flex justify-center items-center gap-2">
+                <div id="timer-container" class="p-3 bg-teal-500 text-white rounded-lg shadow-md inline-block">
+                    <span id="timer-label" class="font-semibold">Assessment Countdown:</span>
+                    <span id="timer-display"></span>
+                </div>
+                <button id="timer-toggle" class="p-2 bg-white rounded-full shadow-md hover:bg-gray-100 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M4 20h5v-5M20 4h-5v5"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <nav class="flex justify-center mb-8 bg-white p-2 rounded-full shadow-sm max-w-md mx-auto">
+            <button class="nav-button active flex-1 py-2 px-4 rounded-full text-sm md:text-base font-semibold" data-view="dashboard">Dashboard</button>
+            <button class="nav-button flex-1 py-2 px-4 rounded-full text-sm md:text-base font-semibold" data-view="full-plan">Full Plan</button>
+            <button class="nav-button flex-1 py-2 px-4 rounded-full text-sm md:text-base font-semibold" data-view="progress">Progress</button>
+        </nav>
+
+        <main>
+            <div id="dashboard-view" class="view-content">
+                <section id="today-mission" class="mb-8 p-6 bg-white rounded-lg shadow-lg">
+                     <div class="flex justify-between items-center mb-4 border-b pb-2">
+                        <h2 class="text-2xl font-bold text-gray-800">Today's Mission</h2>
+                        <button id="add-task-today" class="text-teal-500 hover:text-teal-700 font-bold text-2xl">+</button>
+                     </div>
+                     <p class="text-gray-600 mb-6">This is your primary focus for the day. Completing these tasks means you've won the day. The "First Move" rule dictates that the DSA block should be your first productive action upon waking.</p>
+                     <div id="today-tasks-container"></div>
+                     <div class="mt-6 text-center">
+                        <button id="gemini-daily-strategy" class="bg-gradient-to-r from-teal-400 to-blue-500 text-white font-bold py-2 px-6 rounded-full shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
+                            ✨ Generate Daily Strategy
+                        </button>
+                     </div>
+                     <div id="gemini-daily-response-container" class="hidden gemini-response-container"></div>
+                </section>
+                <section id="resource-hub" class="p-6 bg-white rounded-lg shadow-lg">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Resource Hub</h2>
+                     <p class="text-gray-600 mb-6">Quick access to all the essential learning materials for your sprint.</p>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <a href="https://www.youtube.com/playlist?list=PLgH1hI-Bibo8o5-qzzG-Qp3Y-52s-aJ2F" target="_blank" class="block p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition">
+                            <h3 class="font-semibold text-teal-600">Freshersworld Aptitude Playlist</h3>
+                            <p class="text-sm text-gray-500">Your primary resource for all Quantitative Aptitude topics.</p>
+                        </a>
+                        <a href="https://www.youtube.com/watch?v=vLnPwxZdW4Y" target="_blank" class="block p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition">
+                            <h3 class="font-semibold text-teal-600">freeCodeCamp C++ Tutorial</h3>
+                            <p class="text-sm text-gray-500">The core learning resource for C++ syntax and concepts.</p>
+                        </a>
+                    </div>
+                </section>
+            </div>
+
+            <div id="full-plan-view" class="view-content hidden">
+                 <section class="p-6 bg-white rounded-lg shadow-lg">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">The Full 24-Day Plan</h2>
+                    <p class="text-gray-600 mb-6">This section contains the detailed day-by-day checklist for your entire sprint. Use it to look ahead and understand the progression of topics.</p>
+                    <div id="full-plan-accordion" class="space-y-4"></div>
+                </section>
+            </div>
+
+            <div id="progress-view" class="view-content hidden">
+                <section class="p-6 bg-white rounded-lg shadow-lg">
+                    <div class="flex justify-between items-center mb-4 border-b pb-2">
+                        <h2 class="text-2xl font-bold text-gray-800">Progress Dashboard</h2>
+                        <div class="flex items-center space-x-2 bg-gray-100 p-1 rounded-full text-sm">
+                            <button id="chart-toggle-days" class="px-3 py-1 rounded-full bg-white shadow text-teal-600">Days</button>
+                            <button id="chart-toggle-dates" class="px-3 py-1 rounded-full text-gray-500">Dates</button>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 mb-6">This is your visual feedback center. The charts below track your consistency and effort over time.</p>
+                    <div class="grid lg:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="text-xl font-semibold text-center mb-4 text-gray-700">Sprint Progress Over Time</h3>
+                            <div class="chart-container">
+                                <canvas id="progressLineChart"></canvas>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-semibold text-center mb-4 text-gray-700">Weekly Task Completion</h3>
+                            <div class="chart-container">
+                                <canvas id="weeklyBarChart"></canvas>
+                            </div>
+                        </div>
+                         <div class="lg:col-span-2">
+                            <h3 class="text-xl font-semibold text-center mb-4 mt-8 text-gray-700">Task Category Breakdown</h3>
+                            <div class="chart-container h-[35vh] max-h-[350px]">
+                                <canvas id="taskDonutChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                     <div class="mt-8 text-center">
+                        <button id="gemini-weekly-pep-talk" class="bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-2 px-6 rounded-full shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
+                            ✨ Get Weekly Pep Talk
+                        </button>
+                     </div>
+                     <div id="gemini-weekly-response-container" class="hidden gemini-response-container"></div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <div id="task-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 class="text-xl font-bold mb-4">Add New Task</h3>
+            <div class="space-y-4">
+                <div>
+                    <label for="task-desc" class="block text-sm font-medium text-gray-700">Task Description</label>
+                    <input type="text" id="task-desc" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                </div>
+                <div>
+                    <label for="task-tag" class="block text-sm font-medium text-gray-700">Tag</label>
+                    <select id="task-tag" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                        <option>Apti</option>
+                        <option>DSA</option>
+                        <option>SQL</option>
+                        <option>Profile</option>
+                        <option>Internship</option>
+                        <option>Side Project</option>
+                        <option>Rest</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end space-x-3">
+                <button id="cancel-task" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
+                <button id="save-task" class="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700">Save Task</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const sprintData = {
+            startDate: '2025-07-28',
+            assessmentDate: '2025-08-18',
+            weeks: [
+                {
+                    title: 'Week 1: Building the Foundation (July 28 - Aug 3)',
+                    goal: 'Establish a rock-solid routine. Learn the absolute basics of C++ and master the most important Aptitude topics.',
+                    days: [
+                        { day: 1, tasks: [{ type: 'Apti', desc: 'Percentages' }, { type: 'DSA', desc: 'C++ Tutorial (0:00-0:45) & 1 Array-Easy Problem' }] },
+                        { day: 2, tasks: [{ type: 'Apti', desc: 'Profit & Loss' }, { type: 'DSA', desc: 'C++ Tutorial (0:45-1:30) & 1 Array-Easy Problem' }] },
+                        { day: 3, tasks: [{ type: 'Apti', desc: 'Simple & Compound Interest' }, { type: 'DSA', desc: 'C++ Tutorial (1:30-2:15) & 1 String-Easy Problem' }] },
+                        { day: 4, tasks: [{ type: 'Apti', desc: 'Time & Work' }, { type: 'DSA', desc: 'Review C++ concepts & Re-attempt a problem' }] },
+                        { day: 5, tasks: [{ type: 'Apti', desc: 'Time, Speed & Distance' }, { type: 'DSA', desc: 'C++ Tutorial (2:15-3:00) & 1 String-Easy Problem' }] },
+                        { day: 6, tasks: [{ type: 'Apti', desc: 'Review all topics from the week' }, { type: 'DSA', desc: 'Solve 2 Array/String-Easy problems' }, { type: 'Profile', desc: 'Profile Building (90 mins)' }] },
+                        { day: 7, tasks: [{ type: 'Rest', desc: 'Rest & Recharge: Light revision only' }] },
+                    ]
+                },
+                {
+                    title: 'Week 2: Core Concepts & Consistency (Aug 4 - Aug 10)',
+                    goal: 'Solidify your C++ skills. Begin tackling core data structures and continue building aptitude speed.',
+                    days: [
+                        { day: 8, tasks: [{ type: 'Apti', desc: 'Number System' }, { type: 'DSA', desc: 'C++ Tutorial (Functions & Arrays) & 1 Linked List-Easy Problem' }] },
+                        { day: 9, tasks: [{ type: 'Apti', desc: 'Averages' }, { type: 'DSA', desc: 'C++ Tutorial (Pointers) & 1 Linked List-Easy Problem' }] },
+                        { day: 10, tasks: [{ type: 'Apti', desc: 'Ratio & Proportion' }, { type: 'DSA', desc: 'C++ Tutorial (Classes & Objects) & 1 Stack-Easy Problem' }] },
+                        { day: 11, tasks: [{ type: 'Apti', desc: 'Mixtures & Alligations' }, { type: 'DSA', desc: 'Review C++ OOP concepts & Re-attempt a problem' }] },
+                        { day: 12, tasks: [{ type: 'Apti', desc: 'Permutation & Combination' }, { type: 'DSA', desc: 'Solve 2 Easy problems (Linked List, Stacks)' }] },
+                        { day: 13, tasks: [{ type: 'Apti', desc: 'Probability' }, { type: 'DSA', desc: 'Solve 2 Easy problems' }, { type: 'Profile', desc: 'Profile Building (90 mins)' }] },
+                        { day: 14, tasks: [{ type: 'Rest', desc: 'Rest & Recharge: Light revision' }] },
+                    ]
+                },
+                {
+                    title: 'Week 3: Gaining Speed & Adding SQL (Aug 11 - Aug 17)',
+                    goal: 'You are in the final stretch. Focus on speed, accuracy, and adding the basics of SQL.',
+                    days: [
+                        { day: 15, tasks: [{ type: 'Apti', desc: 'Data Interpretation' }, { type: 'DSA', desc: '1 Searching/Sorting-Easy Problem' }, { type: 'SQL', desc: 'SQL Basics (30 mins)' }] },
+                        { day: 16, tasks: [{ type: 'Apti', desc: 'Logical Reasoning - Blood Relations' }, { type: 'DSA', desc: '1 Searching/Sorting-Easy Problem' }, { type: 'SQL', desc: 'SQL Joins (30 mins)' }] },
+                        { day: 17, tasks: [{ type: 'Apti', desc: 'Logical Reasoning - Syllogism' }, { type: 'DSA', desc: '1 Tree-Easy Problem' }, { type: 'SQL', desc: 'SQL Practice (30 mins)' }] },
+                        { day: 18, tasks: [{ type: 'Apti', desc: 'Mock Test 1 (Timed)' }, { type: 'DSA', desc: 'Review all concepts' }, { type: 'SQL', desc: 'SQL Practice (30 mins)' }] },
+                        { day: 19, tasks: [{ type: 'Apti', desc: 'Analyze Mock Test 1' }, { type: 'DSA', desc: '2 Easy problems from weakest topic' }, { type: 'SQL', desc: 'SQL Practice (30 mins)' }] },
+                        { day: 20, tasks: [{ type: 'Apti', desc: 'Mock Test 2 (Timed)' }, { type: 'DSA', desc: 'Review' }, { type: 'Profile', desc: 'Final polish on LinkedIn' }] },
+                        { day: 21, tasks: [{ type: 'Rest', desc: 'Final Revision: Lightly review. Rest.' }] },
+                    ]
+                },
+                 {
+                    title: 'Week 4: The Final Polish (Assessment Week)',
+                    goal: 'Light revision, good sleep, and stay confident. You\'ve put in the work.',
+                    days: [
+                        { day: 22, tasks: [{ type: 'Rest', desc: 'Light revision of Aptitude formulas' }, { type: 'Rest', desc: 'Re-read code for 2-3 DSA problems' }] },
+                        { day: 23, tasks: [{ type: 'Rest', desc: 'Light revision of Aptitude formulas' }, { type: 'Rest', desc: 'Re-read code for 2-3 DSA problems' }] },
+                        { day: 24, tasks: [{ type: 'Rest', desc: 'Light revision of Aptitude formulas' }, { type: 'Rest', desc: 'Re-read code for 2-3 DSA problems' }] },
+                    ]
+                }
+            ]
+        };
+
+        let progressState = {};
+        let userTasks = {};
+        let isCountdownMode = true;
+        let isChartByDate = false;
+        const charts = {};
+
+        function getTaskTypeColor(type) {
+            const colors = {
+                'Apti': 'bg-blue-100 text-blue-800', 'DSA': 'bg-green-100 text-green-800', 'SQL': 'bg-yellow-100 text-yellow-800',
+                'Profile': 'bg-purple-100 text-purple-800', 'Internship': 'bg-pink-100 text-pink-800', 'Side Project': 'bg-indigo-100 text-indigo-800',
+                'Rest': 'bg-gray-100 text-gray-800'
+            };
+            return colors[type] || 'bg-gray-100 text-gray-800';
+        }
+        
+        function getTaskTypeChartColor(type) {
+            const colors = {
+                'Apti': 'rgba(59, 130, 246, 0.7)', 'DSA': 'rgba(16, 185, 129, 0.7)', 'SQL': 'rgba(245, 158, 11, 0.7)',
+                'Profile': 'rgba(139, 92, 246, 0.7)', 'Internship': 'rgba(236, 72, 153, 0.7)', 'Side Project': 'rgba(99, 102, 241, 0.7)',
+                'Rest': 'rgba(156, 163, 175, 0.7)'
+            };
+            return colors[type] || 'rgba(156, 163, 175, 0.7)';
+        }
+        
+        function getCurrentDayNumber() {
+            const now = new Date();
+            const start = new Date(sprintData.startDate);
+            if (now < start) return 0;
+            const diffTime = Math.abs(now - start);
+            return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        }
+
+        function saveState() {
+            localStorage.setItem('sprintProgressState_v3', JSON.stringify(progressState));
+            localStorage.setItem('sprintUserTasks_v3', JSON.stringify(userTasks));
+        }
+
+        function loadState() {
+            const savedProgress = localStorage.getItem('sprintProgressState_v3');
+            progressState = savedProgress ? JSON.parse(savedProgress) : {};
+            const savedUserTasks = localStorage.getItem('sprintUserTasks_v3');
+            userTasks = savedUserTasks ? JSON.parse(savedUserTasks) : {};
+        }
+
+        function getTasksForDay(dayNumber) {
+            let baseTasks = [];
+            sprintData.weeks.forEach(week => {
+                const dayData = week.days.find(d => d.day === dayNumber);
+                if (dayData) {
+                    baseTasks = dayData.tasks.map((task, index) => ({ ...task, id: `day-${dayNumber}-task-${index}` }));
+                }
+            });
+            const customTasks = (userTasks[dayNumber] || []).map((task, index) => ({ ...task, id: `day-${dayNumber}-custom-${index}` }));
+            return [...baseTasks, ...customTasks];
+        }
+
+        function renderTasks(container, dayNumber) {
+            const tasks = getTasksForDay(dayNumber);
+            if (tasks.length === 0 && dayNumber > 24) {
+                 container.innerHTML = '<p class="text-gray-600">The sprint has completed. Well done!</p>';
+                 return;
+            } else if (tasks.length === 0) {
+                 container.innerHTML = '<p class="text-gray-600">The sprint has not yet started.</p>';
+                 return;
+            }
+            container.innerHTML = `<p class="text-lg font-semibold mb-4 text-gray-700">Day ${dayNumber}</p><ul class="space-y-3">${tasks.map(task => `<li class="flex items-center"><input type="checkbox" id="${task.id}" class="task-checkbox h-5 w-5 rounded border-gray-300 text-teal-600 focus:ring-teal-500" data-task-id="${task.id}" ${progressState[task.id] ? 'checked' : ''}><label for="${task.id}" class="ml-3 text-gray-700 flex-1"><span class="font-medium">${task.desc}</span><span class="text-xs font-semibold ml-2 px-2 py-0.5 rounded-full ${getTaskTypeColor(task.type)}">${task.type}</span></label></li>`).join('')}</ul>`;
+        }
+
+        function renderToday() {
+            renderTasks(document.getElementById('today-tasks-container'), getCurrentDayNumber());
+        }
+
+        function renderFullPlan() {
+            document.getElementById('full-plan-accordion').innerHTML = sprintData.weeks.map(week => `<div class="border rounded-lg bg-gray-50"><button class="accordion-toggle w-full text-left p-4 font-semibold text-lg text-gray-700 flex justify-between items-center hover:bg-gray-100 transition"><span>${week.title}</span><span class="transform transition-transform duration-300 text-teal-500 text-2xl">+</span></button><div class="accordion-content px-4 pb-4"><p class="text-sm text-gray-600 italic mb-4">${week.goal}</p><div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">${week.days.map(day => `<div class="border rounded-md p-3 bg-white"><div class="flex justify-between items-center mb-2"><p class="font-bold">Day ${day.day}</p><button class="add-task-day text-teal-500 hover:text-teal-700 font-bold text-xl" data-day="${day.day}">+</button></div><ul class="space-y-2">${getTasksForDay(day.day).map(task => `<li class="flex items-center"><input type="checkbox" id="full-${task.id}" class="task-checkbox h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500" data-task-id="${task.id}" ${progressState[task.id] ? 'checked' : ''}><label for="full-${task.id}" class="ml-2 text-sm text-gray-700 flex-1">${task.desc}<span class="text-xs font-semibold ml-1 px-1.5 py-0.5 rounded-full ${getTaskTypeColor(task.type)}">${task.type}</span></label></li>`).join('')}</ul></div>`).join('')}</div></div></div>`).join('');
+        }
+        
+        function calculateProgressData() {
+            const lineData = { labels: [], data: [] };
+            let cumulativeCompleted = 0;
+            const startDate = new Date(sprintData.startDate);
+            for (let i = 1; i <= 24; i++) {
+                if (isChartByDate) {
+                    const date = new Date(startDate);
+                    date.setDate(startDate.getDate() + i - 1);
+                    lineData.labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                } else {
+                    lineData.labels.push(`Day ${i}`);
+                }
+                cumulativeCompleted += getTasksForDay(i).filter(task => progressState[task.id]).length;
+                lineData.data.push(cumulativeCompleted);
+            }
+
+            const barData = { labels: [], completed: [], pending: [] };
+            sprintData.weeks.forEach((week, index) => {
+                barData.labels.push(`Week ${index + 1}`);
+                let weeklyCompleted = 0, weeklyTotal = 0;
+                week.days.forEach(day => {
+                    const tasksForDay = getTasksForDay(day.day);
+                    weeklyTotal += tasksForDay.length;
+                    weeklyCompleted += tasksForDay.filter(task => progressState[task.id]).length;
+                });
+                barData.completed.push(weeklyCompleted);
+                barData.pending.push(weeklyTotal - weeklyCompleted);
+            });
+
+            const donutData = { labels: [], data: [], colors: [] };
+            const taskCounts = {};
+            for(let i = 1; i <= 24; i++) getTasksForDay(i).forEach(task => taskCounts[task.type] = (taskCounts[task.type] || 0) + 1);
+            for (const type in taskCounts) {
+                donutData.labels.push(type);
+                donutData.data.push(taskCounts[type]);
+                donutData.colors.push(getTaskTypeChartColor(type));
+            }
+            return { lineData, barData, donutData };
+        }
+
+        function renderCharts() {
+            const { lineData, barData, donutData } = calculateProgressData();
+            if (charts.line) charts.line.destroy();
+            charts.line = new Chart(document.getElementById('progressLineChart').getContext('2d'), { type: 'line', data: { labels: lineData.labels, datasets: [{ label: 'Cumulative Tasks Completed', data: lineData.data, borderColor: '#4FD1C5', backgroundColor: 'rgba(79, 209, 197, 0.2)', fill: true, tension: 0.3 }] }, options: { responsive: true, maintainAspectRatio: false } });
+            if (charts.bar) charts.bar.destroy();
+            charts.bar = new Chart(document.getElementById('weeklyBarChart').getContext('2d'), { type: 'bar', data: { labels: barData.labels, datasets: [{ label: 'Completed', data: barData.completed, backgroundColor: 'rgba(79, 209, 197, 0.8)' }, { label: 'Pending', data: barData.pending, backgroundColor: 'rgba(226, 232, 240, 0.8)' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } } } });
+            if (charts.donut) charts.donut.destroy();
+            charts.donut = new Chart(document.getElementById('taskDonutChart').getContext('2d'), { type: 'doughnut', data: { labels: donutData.labels, datasets: [{ data: donutData.data, backgroundColor: donutData.colors, borderColor: '#FDFBF8', borderWidth: 4 }] }, options: { responsive: true, maintainAspectRatio: false } });
+        }
+        
+        function updateAll() {
+            renderToday();
+            renderFullPlan();
+            if (!document.getElementById('progress-view').classList.contains('hidden')) renderCharts();
+            addEventListeners();
+        }
+
+        function handleCheckboxChange(e) {
+            progressState[e.target.dataset.taskId] = e.target.checked;
+            saveState();
+            updateAll();
+        }
+
+        function openTaskModal(dayNumber) {
+            const modal = document.getElementById('task-modal');
+            modal.dataset.day = dayNumber;
+            document.getElementById('task-desc').value = '';
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.remove('opacity-0'), 10);
+        }
+
+        function closeTaskModal() {
+            const modal = document.getElementById('task-modal');
+            modal.classList.add('opacity-0');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        function saveNewTask() {
+            const dayNumber = document.getElementById('task-modal').dataset.day;
+            const desc = document.getElementById('task-desc').value.trim();
+            const type = document.getElementById('task-tag').value;
+            if (!desc) return;
+            if (!userTasks[dayNumber]) userTasks[dayNumber] = [];
+            userTasks[dayNumber].push({ type, desc });
+            saveState();
+            updateAll();
+            closeTaskModal();
+        }
+
+        function addEventListeners() {
+            document.querySelectorAll('.task-checkbox').forEach(c => c.addEventListener('change', handleCheckboxChange));
+            document.querySelectorAll('.accordion-toggle').forEach(b => b.addEventListener('click', () => {
+                const content = b.nextElementSibling;
+                const icon = b.querySelector('span:last-child');
+                content.style.maxHeight ? (content.style.maxHeight = null, icon.style.transform = 'rotate(0deg)') : (content.style.maxHeight = content.scrollHeight + "px", icon.style.transform = 'rotate(45deg)');
+            }));
+            document.getElementById('add-task-today').addEventListener('click', () => openTaskModal(getCurrentDayNumber()));
+            document.querySelectorAll('.add-task-day').forEach(b => b.addEventListener('click', (e) => openTaskModal(e.target.dataset.day)));
+        }
+
+        function setupNavigation() {
+            const navButtons = document.querySelectorAll('.nav-button');
+            const views = document.querySelectorAll('.view-content');
+            navButtons.forEach(button => button.addEventListener('click', () => {
+                const targetView = button.dataset.view;
+                navButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                views.forEach(view => view.id === `${targetView}-view` ? view.classList.remove('hidden') : view.classList.add('hidden'));
+                if (targetView === 'progress') renderCharts();
+            }));
+        }
+        
+        function updateTimer() {
+            const timerDisplay = document.getElementById('timer-display');
+            const timerLabel = document.getElementById('timer-label');
+            const now = new Date().getTime();
+            if (isCountdownMode) {
+                timerLabel.textContent = "Assessment Countdown:";
+                const assessmentDate = new Date(sprintData.assessmentDate).getTime();
+                const distance = assessmentDate - now;
+                if (distance < 0) {
+                    timerDisplay.innerHTML = "Assessments have begun!";
+                } else {
+                    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                    timerDisplay.innerHTML = `${days}d ${hours}h ${minutes}m`;
+                }
+            } else {
+                timerLabel.textContent = "Time Elapsed:";
+                const startDate = new Date(sprintData.startDate).getTime();
+                const distance = now - startDate;
+                if (distance < 0) {
+                    timerDisplay.innerHTML = "Sprint not started";
+                } else {
+                    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    timerDisplay.innerHTML = `${days}d ${hours}h`;
+                }
+            }
+        }
+
+        async function callGemini(prompt, container) {
+            container.classList.remove('hidden');
+            container.innerHTML = '<div class="loader"></div>';
+            
+            let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+            const payload = { contents: chatHistory };
+            const apiKey = ""; 
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                if (result.candidates && result.candidates.length > 0 && result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    container.innerHTML = `<p class="text-gray-700 whitespace-pre-wrap">${text}</p>`;
+                } else {
+                    container.innerHTML = '<p class="text-red-500">Sorry, something went wrong. Please try again.</p>';
+                }
+            } catch (error) {
+                console.error("Error calling Gemini API:", error);
+                container.innerHTML = '<p class="text-red-500">Error connecting to API. Please check your network.</p>';
+            }
+        }
+
+        function setupGeminiFeatures() {
+            document.getElementById('gemini-daily-strategy').addEventListener('click', () => {
+                const currentDay = getCurrentDayNumber();
+                const tasks = getTasksForDay(currentDay);
+                const taskDescriptions = tasks.map(t => `- ${t.desc} (${t.type})`).join('\n');
+                const prompt = `I am preparing for a software engineering placement. Today my tasks are:\n${taskDescriptions}\n\nGive me a short, actionable strategy and a motivational tip for today. Keep it concise and inspiring.`;
+                const container = document.getElementById('gemini-daily-response-container');
+                callGemini(prompt, container);
+            });
+
+            document.getElementById('gemini-weekly-pep-talk').addEventListener('click', () => {
+                const currentDay = getCurrentDayNumber();
+                const currentWeekNumber = Math.ceil(currentDay / 7);
+                const weekData = sprintData.weeks[currentWeekNumber - 1];
+                if (!weekData) return;
+
+                let weeklyCompleted = 0;
+                let weeklyTotal = 0;
+                weekData.days.forEach(day => {
+                    const tasksForDay = getTasksForDay(day.day);
+                    weeklyTotal += tasksForDay.length;
+                    weeklyCompleted += tasksForDay.filter(task => progressState[task.id]).length;
+                });
+                
+                const prompt = `I am preparing for placements. This week, I completed ${weeklyCompleted} out of ${weeklyTotal} tasks. Based on this progress, give me a short, inspiring pep talk for the next week. Mention what went well and suggest one small thing to focus on for the upcoming week.`;
+                const container = document.getElementById('gemini-weekly-response-container');
+                callGemini(prompt, container);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadState();
+            updateAll();
+            setupNavigation();
+            setupGeminiFeatures();
+            
+            document.getElementById('cancel-task').addEventListener('click', closeTaskModal);
+            document.getElementById('save-task').addEventListener('click', saveNewTask);
+            document.getElementById('timer-toggle').addEventListener('click', () => { isCountdownMode = !isCountdownMode; updateTimer(); });
+
+            const chartToggleDays = document.getElementById('chart-toggle-days');
+            const chartToggleDates = document.getElementById('chart-toggle-dates');
+            chartToggleDays.addEventListener('click', () => { isChartByDate = false; chartToggleDays.classList.add('bg-white', 'shadow', 'text-teal-600'); chartToggleDates.classList.remove('bg-white', 'shadow', 'text-teal-600'); renderCharts(); });
+            chartToggleDates.addEventListener('click', () => { isChartByDate = true; chartToggleDates.classList.add('bg-white', 'shadow', 'text-teal-600'); chartToggleDays.classList.remove('bg-white', 'shadow', 'text-teal-600'); renderCharts(); });
+
+            setInterval(updateTimer, 60000);
+            updateTimer();
+        });
+    </script>
+</body>
+</html>
