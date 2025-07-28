@@ -6,9 +6,11 @@
     <title>Interactive 24-Day Sprint Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="scripts/canvas-confetti.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="script/canvas-confetti.min.js"></script>
     <!-- Chosen Palette: Warm Neutrals & Muted Teal -->
     <!-- Application Structure Plan: A task-oriented, single-page dashboard designed to transform the static 24-day sprint plan into an active, motivational tracking tool. The structure prioritizes the user's immediate needs ("What do I do today?") while providing easy access to the full plan and progress visualizations. The architecture consists of a main header with a countdown, a tab-based navigation for switching between 'Dashboard', 'Full Plan', and 'Progress' views, and distinct content areas for each view. This structure was chosen over a linear representation of the report because it turns passive information into an interactive checklist, enhancing user engagement, accountability, and motivation through visual feedback on their progress. -->
     <!-- Visualization & Content Choices: 
@@ -67,15 +69,93 @@
                 max-height: 300px;
             }
         }
+    .dark {
+        background-color: #1F2937;
+        color: #F9FAFB;
+    }
+    .dark .stat-card {
+        background-color: #374151;
+        color: #F9FAFB;
+    }
+    .dark .text-gray-800 {
+        color: #F9FAFB !important;
+    }
+    .dark .text-gray-600 {
+        color: #D1D5DB !important;
+    }
+    .dark .bg-white {
+        background-color: #1F2937 !important;
+    }
+    .dark .border-gray-300,
+    .dark .border-gray-200 {
+        border-color: #4B5563 !important;
+    }
+    .dark .bg-gray-50 {
+        background-color: #374151 !important;
+    }
+    .dark .bg-gray-100 {
+        background-color: #4B5563 !important;
+    }
+    .dark .bg-teal-500 {
+        background-color: #2DD4BF !important;
+    }
+    /* Additional dark mode adjustments */
+    .dark .text-gray-700 {
+        color: #E5E7EB !important;
+    }
+    .dark .text-gray-500 {
+        color: #9CA3AF !important;
+    }
+    .dark .bg-white {
+        background-color: #1F2937 !important;
+    }
+    .dark .border-gray-200,
+    .dark .border-gray-300 {
+        border-color: #4B5563 !important;
+    }
+    .dark .shadow-md,
+    .dark .shadow-lg,
+    .dark .shadow-sm {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+    }
+    .dark .bg-blue-100 {
+        background-color: #1E40AF !important;
+        color: #DBEAFE !important;
+    }
+    .dark .bg-green-100 {
+        background-color: #064E3B !important;
+        color: #A7F3D0 !important;
+    }
+    .dark .bg-yellow-100 {
+        background-color: #78350F !important;
+        color: #FEF3C7 !important;
+    }
+    .dark .bg-purple-100 {
+        background-color: #4C1D95 !important;
+        color: #E9D5FF !important;
+    }
+    .dark .bg-pink-100 {
+        background-color: #831843 !important;
+        color: #FBCFE8 !important;
+    }
+    .dark .bg-indigo-100 {
+        background-color: #312E81 !important;
+        color: #C7D2FE !important;
+    }
+    .dark .bg-gray-100,
+    .dark .bg-gray-50 {
+        background-color: #374151 !important;
+    }
     </style>
+    <audio id="confetti-sound" src="assets/confetti-pop.mp3" preload="auto"></audio>
 </head>
 <body class="antialiased bg-white text-gray-800">
     <!-- Sticky Top Navigation Bar -->
     <nav class="fixed top-0 left-0 w-full z-50 bg-white shadow-md border-b border-gray-200">
         <div class="max-w-7xl mx-auto flex items-center justify-between px-4 md:px-8 h-16">
             <div class="flex items-center gap-3">
-                <span class="text-2xl font-bold text-teal-600">SprintDash</span>
-                <span class="hidden sm:inline text-lg font-semibold text-gray-800">24-Day Sprint</span>
+                <span class="text-2xl font-bold text-teal-600">Sprint OS</span>
+                <span class="hidden sm:inline text-lg font-semibold text-gray-800"></span>
             </div>
             <!-- Desktop Nav Links -->
             <div class="hidden md:flex items-center gap-6">
@@ -83,6 +163,9 @@
                 <button class="nav-button py-2 px-4 rounded-full text-sm font-semibold bg-white text-gray-800" data-view="full-plan">Sprint Plan</button>
                 <button class="nav-button py-2 px-4 rounded-full text-sm font-semibold bg-white text-gray-800" data-view="progress">Progress</button>
             </div>
+            <button id="theme-toggle" class="p-2 rounded-full bg-gray-100 text-gray-800 hover:bg-gray-200 transition dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+                🌓
+            </button>
             <!-- Hamburger for mobile -->
             <button id="mobile-nav-toggle" class="md:hidden flex items-center justify-center p-2 rounded-full bg-white text-gray-800 hover:bg-gray-100 transition" aria-label="Open navigation">
                 <svg id="hamburger-icon" xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -579,9 +662,133 @@
                 });
             });
 
+            const themeToggle = document.getElementById('theme-toggle');
+            themeToggle.addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark');
+                localStorage.setItem('sprint-theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+            });
+
+            // Load saved theme
+            const savedTheme = localStorage.getItem('sprint-theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+            }
+
             setInterval(updateTimer, 1000);
             updateTimer();
         });
+        // Auto-save task draft (Feature 1)
+document.getElementById('task-desc').addEventListener('input', (e) => {
+    localStorage.setItem('draft-task-desc', e.target.value);
+});
+
+const originalOpenTaskModal = openTaskModal;
+openTaskModal = function(dayNumber) {
+    originalOpenTaskModal(dayNumber);
+    const savedDraft = localStorage.getItem('draft-task-desc');
+    if (savedDraft) {
+        document.getElementById('task-desc').value = savedDraft;
+    }
+};
+
+const originalCloseTaskModal = closeTaskModal;
+closeTaskModal = function() {
+    originalCloseTaskModal();
+    localStorage.removeItem('draft-task-desc');
+};
+
+// Mark All Done Button (Feature 2)
+function addMarkAllDoneButton() {
+    const todayContainer = document.getElementById('today-tasks-container');
+    if (!todayContainer.querySelector('#mark-all-done')) {
+        const button = document.createElement('button');
+        button.id = "mark-all-done";
+        button.textContent = " ✅ Mark All Done";
+        button.className = "mb-4 bg-teal-600 hover:bg-teal-700 text-white font-medium py-1 px-3 rounded-md";
+        button.onclick = () => {
+            getTasksForDay(getCurrentDayNumber()).forEach(task => {
+                progressState[task.id] = true;
+            });
+            saveState();
+            updateAll();
+            triggerConfetti();
+        };
+        todayContainer.insertBefore(button, todayContainer.firstChild);
+    }
+}
+
+// Confetti Celebration (Feature 3)
+function triggerConfetti() {
+    if (typeof confetti === "function") {
+        confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 }
+        });
+    } else {
+        console.warn("Confetti library not loaded.");
+    }
+
+    const sound = document.getElementById('confetti-sound');
+    if (sound) {
+        sound.currentTime = 0;
+        sound.play().catch((err) => console.warn("Sound couldn't play:", err));
+    }
+}
+
+// Daily Motivation (Feature 4)
+document.addEventListener('DOMContentLoaded', () => {
+    const motivationalQuotes = [
+        "Stay consistent. Small steps lead to big changes.",
+        "Discipline is choosing between what you want now and what you want most.",
+        "Today’s efforts are tomorrow’s achievements.",
+        "Keep pushing. You're closer than you think.",
+        "Progress, not perfection.",
+        "The secret to getting ahead is getting started.",
+        "One sprint at a time. Keep going!"
+    ];
+    const quoteIndex = new Date().getDate() % motivationalQuotes.length;
+    const quoteContainer = document.createElement("p");
+    quoteContainer.textContent = motivationalQuotes[quoteIndex];
+    quoteContainer.className = "mt-4 text-sm text-gray-500 italic";
+    document.querySelector("header").appendChild(quoteContainer);
+});
+
+// Keyboard Shortcut for Theme Toggle (Feature 5)
+document.addEventListener('keydown', (e) => {
+    if (e.shiftKey && e.key.toLowerCase() === 'd') {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem('sprint-theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    }
+});
+
+// Completion Rate Indicator (Feature 7)
+function addCompletionRate() {
+    const total = Object.keys(progressState).length;
+    const done = Object.values(progressState).filter(Boolean).length;
+    const statCard = document.getElementById('stat-total-completed').parentElement;
+    let rate = statCard.querySelector('.completion-rate');
+    if (!rate) {
+        rate = document.createElement('p');
+        rate.className = "completion-rate text-xs text-gray-500 mt-1";
+        statCard.appendChild(rate);
+    }
+    rate.textContent = `(${done}/${total} tasks completed - ${Math.round((done / total) * 100 || 0)}%)`;
+}
+
+const originalRenderDashboardStats = renderDashboardStats;
+renderDashboardStats = function () {
+    originalRenderDashboardStats();
+    addCompletionRate();
+};
+
+// Inject "Mark All Done" in today's task section
+const originalRenderToday = renderToday;
+renderToday = function () {
+    originalRenderToday();
+    addMarkAllDoneButton();
+};
     </script>
+
 </body>
 </html>
