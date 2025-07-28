@@ -22,15 +22,15 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #FDFBF8;
-            color: #4A4A4A;
+            background-color: #fff;
+            color: #1F2937; /* text-gray-800 */
         }
         .nav-button {
             transition: all 0.3s ease;
         }
         .nav-button.active {
             background-color: #4FD1C5;
-            color: white;
+            color: #fff;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
         .task-checkbox:checked + label {
@@ -55,7 +55,7 @@
             transition: opacity 0.3s ease;
         }
         .stat-card {
-            background-color: white;
+            background-color: #fff;
             border-radius: 0.75rem;
             padding: 1.5rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
@@ -69,9 +69,42 @@
         }
     </style>
 </head>
-<body class="antialiased">
-    <div id="app-container" class="container mx-auto p-4 md:p-8 max-w-7xl">
-        
+<body class="antialiased bg-white text-gray-800">
+    <!-- Sticky Top Navigation Bar -->
+    <nav class="fixed top-0 left-0 w-full z-50 bg-white shadow-md border-b border-gray-200">
+        <div class="max-w-7xl mx-auto flex items-center justify-between px-4 md:px-8 h-16">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl font-bold text-teal-600">SprintDash</span>
+                <span class="hidden sm:inline text-lg font-semibold text-gray-800">24-Day Sprint</span>
+            </div>
+            <!-- Desktop Nav Links -->
+            <div class="hidden md:flex items-center gap-6">
+                <button class="nav-button active py-2 px-4 rounded-full text-sm font-semibold bg-white text-gray-800" data-view="dashboard">Dashboard</button>
+                <button class="nav-button py-2 px-4 rounded-full text-sm font-semibold bg-white text-gray-800" data-view="full-plan">Sprint Plan</button>
+                <button class="nav-button py-2 px-4 rounded-full text-sm font-semibold bg-white text-gray-800" data-view="progress">Progress</button>
+            </div>
+            <!-- Hamburger for mobile -->
+            <button id="mobile-nav-toggle" class="md:hidden flex items-center justify-center p-2 rounded-full bg-white text-gray-800 hover:bg-gray-100 transition" aria-label="Open navigation">
+                <svg id="hamburger-icon" xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+                <svg id="close-icon" xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <!-- Mobile Nav Drawer -->
+        <div id="mobile-nav" class="md:hidden bg-white border-t border-gray-200 px-4 pb-4 pt-2 hidden">
+            <div class="flex flex-col gap-2">
+                <button class="nav-button active py-2 px-4 rounded-full text-base font-semibold text-left bg-white text-gray-800" data-view="dashboard">Dashboard</button>
+                <button class="nav-button py-2 px-4 rounded-full text-base font-semibold text-left bg-white text-gray-800" data-view="full-plan">Sprint Plan</button>
+                <button class="nav-button py-2 px-4 rounded-full text-base font-semibold text-left bg-white text-gray-800" data-view="progress">Progress</button>
+            </div>
+        </div>
+    </nav>
+    <!-- Main App Container with top padding for sticky nav -->
+    <div id="app-container" class="container mx-auto pt-24 md:pt-28 p-4 md:p-8 max-w-7xl">
+        <!-- Header Section -->
         <header class="text-center mb-8">
             <h1 class="text-4xl md:text-5xl font-bold text-gray-800">The 24-Day Sprint</h1>
             <p class="text-lg text-gray-500 mt-2">Your Interactive Battle Plan for Placement Success</p>
@@ -86,7 +119,8 @@
             </div>
         </header>
 
-        <nav class="flex justify-center mb-8 bg-white p-2 rounded-full shadow-sm max-w-md mx-auto">
+        <!-- Old Tab Navigation (hidden, replaced by sticky nav) -->
+        <nav class="hidden flex justify-center mb-8 bg-white p-2 rounded-full shadow-sm max-w-md mx-auto">
             <button class="nav-button active flex-1 py-2 px-4 rounded-full text-sm md:text-base font-semibold" data-view="dashboard">Dashboard</button>
             <button class="nav-button flex-1 py-2 px-4 rounded-full text-sm md:text-base font-semibold" data-view="full-plan">Full Plan</button>
             <button class="nav-button flex-1 py-2 px-4 rounded-full text-sm md:text-base font-semibold" data-view="progress">Progress</button>
@@ -96,60 +130,46 @@
             <div id="dashboard-view" class="view-content">
                 <section id="daily-stats" class="mb-8">
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div class="stat-card">
+                        <div class="stat-card border border-gray-300 bg-white">
                             <p class="text-sm font-medium text-gray-500">Sprint Day</p>
                             <p id="stat-current-day" class="text-3xl font-bold text-teal-600">0</p>
                         </div>
-                        <div class="stat-card">
+                        <div class="stat-card border border-gray-300 bg-white">
                             <p class="text-sm font-medium text-gray-500">Today's Progress</p>
                             <p id="stat-today-progress" class="text-3xl font-bold text-teal-600">0/0</p>
                         </div>
-                        <div class="stat-card">
+                        <div class="stat-card border border-gray-300 bg-white">
                             <p class="text-sm font-medium text-gray-500">Current Streak</p>
                             <p id="stat-current-streak" class="text-3xl font-bold text-teal-600">0 Days</p>
                         </div>
-                        <div class="stat-card">
+                        <div class="stat-card border border-gray-300 bg-white">
                             <p class="text-sm font-medium text-gray-500">Total Completed</p>
                             <p id="stat-total-completed" class="text-3xl font-bold text-teal-600">0</p>
                         </div>
                     </div>
                 </section>
 
-                <section id="today-mission" class="mb-8 p-6 bg-white rounded-lg shadow-lg">
-                     <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <section id="today-mission" class="mb-8 p-6 bg-white rounded-lg shadow-lg border border-gray-300">
+                    <div class="flex justify-between items-center mb-4 border-b border-gray-200 pb-2">
                         <h2 class="text-2xl font-bold text-gray-800">Today's Mission</h2>
                         <button id="add-task-today" class="text-teal-500 hover:text-teal-700 font-bold text-2xl">+</button>
-                     </div>
-                     <p class="text-gray-600 mb-6">This is your primary focus for the day. Completing these tasks means you've won the day. The "First Move" rule dictates that the DSA block should be your first productive action upon waking.</p>
-                     <div id="today-tasks-container"></div>
-                </section>
-                <section id="resource-hub" class="p-6 bg-white rounded-lg shadow-lg">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Resource Hub</h2>
-                     <p class="text-gray-600 mb-6">Quick access to all the essential learning materials for your sprint.</p>
-                    <div class="grid md:grid-cols-2 gap-4">
-                        <a href="https://www.youtube.com/playlist?list=PLgH1hI-Bibo8o5-qzzG-Qp3Y-52s-aJ2F" target="_blank" class="block p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition">
-                            <h3 class="font-semibold text-teal-600">Freshersworld Aptitude Playlist</h3>
-                            <p class="text-sm text-gray-500">Your primary resource for all Quantitative Aptitude topics.</p>
-                        </a>
-                        <a href="https://www.youtube.com/watch?v=vLnPwxZdW4Y" target="_blank" class="block p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition">
-                            <h3 class="font-semibold text-teal-600">freeCodeCamp C++ Tutorial</h3>
-                            <p class="text-sm text-gray-500">The core learning resource for C++ syntax and concepts.</p>
-                        </a>
                     </div>
+                    <p class="text-gray-600 mb-6">This is your primary focus for the day. Completing these tasks means you've won the day. The "First Move" rule dictates that the DSA block should be your first productive action upon waking.</p>
+                    <div id="today-tasks-container"></div>
                 </section>
             </div>
 
             <div id="full-plan-view" class="view-content hidden">
-                 <section class="p-6 bg-white rounded-lg shadow-lg">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">The Full 24-Day Plan</h2>
+                <section class="p-6 bg-white rounded-lg shadow-lg border border-gray-300">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b border-gray-200 pb-2">The Full 24-Day Plan</h2>
                     <p class="text-gray-600 mb-6">This section contains the detailed day-by-day checklist for your entire sprint. Use it to look ahead and understand the progression of topics.</p>
                     <div id="full-plan-accordion" class="space-y-4"></div>
                 </section>
             </div>
 
             <div id="progress-view" class="view-content hidden">
-                <section class="p-6 bg-white rounded-lg shadow-lg">
-                    <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <section class="p-6 bg-white rounded-lg shadow-lg border border-gray-300">
+                    <div class="flex justify-between items-center mb-4 border-b border-gray-200 pb-2">
                         <h2 class="text-2xl font-bold text-gray-800">Progress Dashboard</h2>
                         <div class="flex items-center space-x-2 bg-gray-100 p-1 rounded-full text-sm">
                             <button id="chart-toggle-days" class="px-3 py-1 rounded-full bg-white shadow text-teal-600">Days</button>
@@ -160,19 +180,19 @@
                     <div class="grid lg:grid-cols-2 gap-8">
                         <div>
                             <h3 class="text-xl font-semibold text-center mb-4 text-gray-700">Sprint Progress Over Time</h3>
-                            <div class="chart-container">
+                            <div class="chart-container bg-white border border-gray-200 rounded-lg">
                                 <canvas id="progressLineChart"></canvas>
                             </div>
                         </div>
                         <div>
                             <h3 class="text-xl font-semibold text-center mb-4 text-gray-700">Weekly Task Completion</h3>
-                            <div class="chart-container">
+                            <div class="chart-container bg-white border border-gray-200 rounded-lg">
                                 <canvas id="weeklyBarChart"></canvas>
                             </div>
                         </div>
-                         <div class="lg:col-span-2">
+                        <div class="lg:col-span-2">
                             <h3 class="text-xl font-semibold text-center mb-4 mt-8 text-gray-700">Task Category Breakdown</h3>
-                            <div class="chart-container h-[35vh] max-h-[350px]">
+                            <div class="chart-container h-[35vh] max-h-[350px] bg-white border border-gray-200 rounded-lg">
                                 <canvas id="taskDonutChart"></canvas>
                             </div>
                         </div>
@@ -182,17 +202,17 @@
         </main>
     </div>
 
-    <div id="task-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0">
-        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-            <h3 class="text-xl font-bold mb-4">Add New Task</h3>
+    <div id="task-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0 z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md border border-gray-300">
+            <h3 class="text-xl font-bold mb-4 text-gray-800">Add New Task</h3>
             <div class="space-y-4">
                 <div>
                     <label for="task-desc" class="block text-sm font-medium text-gray-700">Task Description</label>
-                    <input type="text" id="task-desc" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                    <input type="text" id="task-desc" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 bg-white text-gray-800">
                 </div>
                 <div>
                     <label for="task-tag" class="block text-sm font-medium text-gray-700">Tag</label>
-                    <select id="task-tag" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500">
+                    <select id="task-tag" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 bg-white text-gray-800">
                         <option>Apti</option>
                         <option>DSA</option>
                         <option>SQL</option>
@@ -489,10 +509,15 @@
                 if (distance < 0) {
                     timerDisplay.innerHTML = "Assessments have begun!";
                 } else {
-                    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-                    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                    timerDisplay.innerHTML = `${days}d ${hours}h ${minutes}m`;
+                    const totalSeconds = Math.floor(distance / 1000);
+                    const days = Math.floor(totalSeconds / (60 * 60 * 24));
+                    const hours = Math.floor((totalSeconds % (60 * 60 * 24)) / (60 * 60));
+                    const minutes = Math.floor((totalSeconds % (60 * 60)) / 60);
+                    const seconds = totalSeconds % 60;
+                    // Format minutes and seconds as MM:SS, with leading zeros
+                    const minStr = String(minutes).padStart(2, '0');
+                    const secStr = String(seconds).padStart(2, '0');
+                    timerDisplay.innerHTML = `${days}d ${hours}h ${minStr}:${secStr}`;
                 }
             } else {
                 timerLabel.textContent = "Time Elapsed:";
@@ -501,9 +526,14 @@
                 if (distance < 0) {
                     timerDisplay.innerHTML = "Sprint not started";
                 } else {
-                    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-                    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                    timerDisplay.innerHTML = `${days}d ${hours}h`;
+                    const totalSeconds = Math.floor(distance / 1000);
+                    const days = Math.floor(totalSeconds / (60 * 60 * 24));
+                    const hours = Math.floor((totalSeconds % (60 * 60 * 24)) / (60 * 60));
+                    const minutes = Math.floor((totalSeconds % (60 * 60)) / 60);
+                    const seconds = totalSeconds % 60;
+                    const minStr = String(minutes).padStart(2, '0');
+                    const secStr = String(seconds).padStart(2, '0');
+                    timerDisplay.innerHTML = `${days}d ${hours}h ${minStr}:${secStr}`;
                 }
             }
         }
@@ -512,17 +542,44 @@
             loadState();
             updateAll();
             setupNavigation();
-            
+            // Modal events
             document.getElementById('cancel-task').addEventListener('click', closeTaskModal);
             document.getElementById('save-task').addEventListener('click', saveNewTask);
             document.getElementById('timer-toggle').addEventListener('click', () => { isCountdownMode = !isCountdownMode; updateTimer(); });
 
+            // Chart toggles
             const chartToggleDays = document.getElementById('chart-toggle-days');
             const chartToggleDates = document.getElementById('chart-toggle-dates');
             chartToggleDays.addEventListener('click', () => { isChartByDate = false; chartToggleDays.classList.add('bg-white', 'shadow', 'text-teal-600'); chartToggleDates.classList.remove('bg-white', 'shadow', 'text-teal-600'); renderCharts(); });
             chartToggleDates.addEventListener('click', () => { isChartByDate = true; chartToggleDates.classList.add('bg-white', 'shadow', 'text-teal-600'); chartToggleDays.classList.remove('bg-white', 'shadow', 'text-teal-600'); renderCharts(); });
 
-            setInterval(updateTimer, 60000);
+            // Mobile nav toggle
+            const mobileNavToggle = document.getElementById('mobile-nav-toggle');
+            const mobileNav = document.getElementById('mobile-nav');
+            const hamburgerIcon = document.getElementById('hamburger-icon');
+            const closeIcon = document.getElementById('close-icon');
+            mobileNavToggle.addEventListener('click', () => {
+                const isOpen = !mobileNav.classList.contains('hidden');
+                if (isOpen) {
+                    mobileNav.classList.add('hidden');
+                    hamburgerIcon.classList.remove('hidden');
+                    closeIcon.classList.add('hidden');
+                } else {
+                    mobileNav.classList.remove('hidden');
+                    hamburgerIcon.classList.add('hidden');
+                    closeIcon.classList.remove('hidden');
+                }
+            });
+            // Close mobile nav on link click
+            mobileNav.querySelectorAll('button, a').forEach(el => {
+                el.addEventListener('click', () => {
+                    mobileNav.classList.add('hidden');
+                    hamburgerIcon.classList.remove('hidden');
+                    closeIcon.classList.add('hidden');
+                });
+            });
+
+            setInterval(updateTimer, 1000);
             updateTimer();
         });
     </script>

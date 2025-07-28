@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-light: #FFFFFF;
+  --text-light: #334155;
+  --card-light: #FFFFFF;
+  --border-light: #F1F5F9;
+  --bg-dark: #1e2c3b; /* A slightly softer dark blue */
+  --text-dark: #cbd5e1;
+  --card-dark: #334155;
+  --border-dark: #475569;
+  --accent: #14b8a6;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+body {
+  @apply bg-white text-slate-700;
+}
+
+html.dark body {
+  @apply bg-slate-900 text-slate-300;
+}
+
+.card {
+  @apply bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm transition-colors;
+}
